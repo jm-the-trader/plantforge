@@ -22,13 +22,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center px-4 pt-safe pb-safe">
-      <form onSubmit={handleSubmit} className="card w-full max-w-sm animate-rise p-7 text-center">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-canopy-600 text-3xl shadow-lg shadow-canopy-600/30">
+    <div className="flex min-h-[100dvh] items-center justify-center px-5 pt-safe pb-safe">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm animate-rise rounded-3xl border border-white/10 bg-gradient-to-b from-soil-800 to-soil-850 p-8 text-center shadow-2xl shadow-black/40"
+      >
+        <div className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-canopy-500 to-canopy-700 text-4xl shadow-lg shadow-canopy-700/40">
           🪴
         </div>
-        <h1 className="mt-4 text-2xl font-bold text-white">PlantForge</h1>
-        <p className="mt-1 text-sm text-soil-50/60">Sign in to your plant collection.</p>
+        <h1 className="mt-5 text-2xl font-bold tracking-tight text-white">PlantForge</h1>
+        <p className="mt-1 text-sm text-soil-50/55">Sign in to your plant collection.</p>
 
         <div className="mt-6 space-y-3 text-left">
           <div>

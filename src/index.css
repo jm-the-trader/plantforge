@@ -59,18 +59,53 @@ button {
   padding-bottom: calc(0.75rem + var(--sab));
 }
 
-/* Inputs / form controls */
+/* Inputs / form controls — normalized so text, select, date and textarea all
+   share the exact same height, padding, radius and border (consistent symmetry
+   across the form, including on iOS where native controls differ). */
 .field {
-  @apply w-full rounded-xl border border-white/10 bg-soil-850 px-3.5 py-3 text-soil-50 outline-none transition focus:border-canopy-500;
+  @apply w-full rounded-xl border border-white/10 bg-soil-850 px-3.5 text-soil-50 outline-none transition;
+  height: 48px;
+  line-height: 1.2;
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+}
+.field:focus {
+  @apply border-canopy-500;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
 }
 .field::placeholder {
   @apply text-soil-50/35;
+}
+/* Multi-line text grows beyond the fixed control height. */
+textarea.field {
+  height: auto;
+  min-height: 92px;
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+  resize: vertical;
+}
+/* Select: hide the native chevron, draw a consistent one, reserve right padding. */
+select.field {
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2390b6a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 1.1rem;
+}
+/* Date input: keep it the same height and left-aligned like the others. */
+input[type='date'].field {
+  min-height: 48px;
+}
+input[type='date'].field::-webkit-date-and-time-value {
+  text-align: left;
 }
 .label {
   @apply mb-1.5 block text-sm font-medium text-soil-50/70;
 }
 .btn {
-  @apply tap inline-flex items-center justify-center gap-2 rounded-xl px-4 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+  min-height: 48px;
 }
 .btn-primary {
   @apply btn bg-canopy-600 text-white hover:bg-canopy-500;

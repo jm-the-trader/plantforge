@@ -7,60 +7,57 @@ import PlantDetail from './pages/PlantDetail.jsx'
 import PlantForm from './pages/PlantForm.jsx'
 import Settings from './pages/Settings.jsx'
 
+const TABS = [
+  { to: '/', icon: '🏠', label: 'Home', end: true },
+  { to: '/plants', icon: '🌿', label: 'Plants' },
+  { to: '/settings', icon: '⚙️', label: 'Settings' },
+]
+
 function BottomNav() {
   const tab = ({ isActive }) =>
-    `flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] ${
-      isActive ? 'text-canopy-400' : 'text-soil-50/55'
+    `flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium tracking-tight transition-colors ${
+      isActive ? 'text-canopy-400' : 'text-soil-50/50'
     }`
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-soil-900/90 backdrop-blur pb-safe">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-soil-900/85 backdrop-blur-xl pb-safe">
       <div className="mx-auto flex max-w-xl items-stretch">
-        <NavLink to="/" end className={tab}>
-          <span className="text-xl">🏠</span>
-          Home
-        </NavLink>
-        <NavLink to="/plants" className={tab}>
-          <span className="text-xl">🌿</span>
-          Plants
-        </NavLink>
-        {/* Center add button */}
-        <Link
-          to="/plants/new"
-          className="relative -mt-5 flex w-16 flex-col items-center"
-          aria-label="Add plant"
-        >
-          <span className="grid h-14 w-14 place-items-center rounded-full bg-canopy-600 text-3xl text-white shadow-lg shadow-canopy-600/40 active:scale-95">
-            +
-          </span>
-        </Link>
-        <NavLink to="/settings" className={tab}>
-          <span className="text-xl">⚙️</span>
-          Settings
-        </NavLink>
-        <NavLink to="/about" className={tab}>
-          <span className="text-xl">🪴</span>
-          About
-        </NavLink>
+        {TABS.map((t) => (
+          <NavLink key={t.to} to={t.to} end={t.end} className={tab}>
+            {({ isActive }) => (
+              <>
+                <span className={`text-[22px] leading-none transition-transform ${isActive ? 'scale-110' : ''}`}>
+                  {t.icon}
+                </span>
+                {t.label}
+              </>
+            )}
+          </NavLink>
+        ))}
       </div>
     </nav>
   )
 }
 
-function Shell({ children }) {
+// Floating "add" button — thumb-reachable, sits just above the tab bar.
+function AddFab() {
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-xl pb-28 pt-safe">
-      <div className="px-4">{children}</div>
-      <BottomNav />
-    </div>
+    <Link
+      to="/plants/new"
+      aria-label="Add plant"
+      className="fixed right-4 z-40 grid h-14 w-14 place-items-center rounded-full bg-canopy-600 text-3xl font-light text-white shadow-xl shadow-canopy-700/40 transition active:scale-95"
+      style={{ bottom: 'calc(72px + var(--sab))' }}
+    >
+      +
+    </Link>
   )
 }
 
-function About() {
+function Shell({ children, showFab }) {
   return (
-    <div className="animate-rise space-y-3 py-6">
-      <h1 className="text-2xl font-bold text-white">🪴 PlantForge</h1>
-      <p className="text-soil-50/70">A little inventory for your plants — track watering, repotting and fertilizing, keep a photo and notes for each one, and see what needs attention on the home screen.</p>
-      <p className="text-sm text-soil-50/50">Tip: in Safari, tap Share → “Add to Home Screen” for an app icon.</p>
+    <div className="mx-auto min-h-[100dvh] max-w-xl pb-28 pt-safe">
+      <div className="px-4">{children}</div>
+      {showFab && <AddFab />}
+      <BottomNav />
     </div>
   )
 }
@@ -77,8 +74,11 @@ export default function App() {
     return <LoginPage />
   }
 
+  // Hide the add button on the form pages (it'd be redundant there).
+  const showFab = !pathname.includes('/plants/new') && !pathname.endsWith('/edit')
+
   return (
-    <Shell key={pathname}>
+    <Shell key={pathname} showFab={showFab}>
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/plants" element={<PlantList />} />
@@ -86,7 +86,6 @@ export default function App() {
         <Route path="/plant/:id" element={<PlantDetail />} />
         <Route path="/plant/:id/edit" element={<PlantForm />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/about" element={<About />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Shell>
