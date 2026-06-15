@@ -37,7 +37,9 @@ One-time, ~10 minutes:
 
 1. Create a free project at [supabase.com](https://supabase.com). Note the **Project URL** and **anon public key** (Settings → API).
 2. In the **SQL editor**, run [`supabase/schema.sql`](supabase/schema.sql) — it creates the tables, RLS policies, and the private `plant-photos` storage bucket.
-3. Create the login: **Authentication → Users → Add user**. To allow a short **username** instead of an email, enter the email as `<username>@plantforge.local` (e.g. `jo@plantforge.local`), set a password, and turn **Auto Confirm User** on. She then signs in by typing just `jo` (the app maps it to that synthetic email). A real email works too. *(Password must be ≥6 chars — Supabase's default; adjustable under Authentication → Policies.)*
+3. Create the login: **Authentication → Users → Add user**. To allow a short **username** instead of an email, enter the email as `<username>@<domain>` (e.g. `jo@plantforge.local`), set a password, and turn **Auto Confirm User** on. She then signs in by typing just `jo` — the app maps it to `jo@<domain>`. A real email works too. *(Password must be ≥6 chars — Supabase's default.)*
+
+   > **The username domain must match.** The app maps `jo` → `jo@plantforge.local` by default. If you created the user with a different domain (e.g. `jo@local.me`), set **`VITE_USERNAME_DOMAIN`** to that domain (in `.env` for dev, and as a repo **Variable** for deploy) — or just recreate the user with `@plantforge.local`.
 4. **Local dev:** copy `.env.example` to `.env` and fill in:
    ```
    VITE_SUPABASE_URL=https://xxxx.supabase.co

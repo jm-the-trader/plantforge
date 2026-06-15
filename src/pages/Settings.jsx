@@ -40,10 +40,18 @@ export default function Settings() {
           )}
         </Row>
         {needsAuth && (
-          <Row label="Account">
-            <span className="text-soil-50/80">{user?.email}</span>
+          <Row label="Signed in as">
+            <span className="text-soil-50/80">{(user?.email || '').split('@')[0] || '—'}</span>
           </Row>
         )}
+      </section>
+
+      <section className="card p-4">
+        <div className="text-sm font-semibold text-white">📲 Add to Home Screen</div>
+        <p className="mt-1 text-sm text-soil-50/55">
+          In Safari, tap the Share button → <span className="text-soil-50/80">Add to Home Screen</span> to use PlantForge
+          like a full-screen app.
+        </p>
       </section>
 
       {MODE === 'local' && (
