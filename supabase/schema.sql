@@ -32,9 +32,22 @@ create table if not exists care_events (
 
 create index if not exists care_events_plant_idx on care_events(plant_id);
 
+-- Per-user preferences (one row per user). Currently just the collection name
+-- shown as the home-screen heading; add columns here for future settings.
+create table if not exists app_settings (
+  user_id uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  collection_name text,
+  updated_at timestamptz not null default now()
+);
+
 -- ── Row Level Security: each user only sees their own rows ──────────────────
 alter table plants enable row level security;
 alter table care_events enable row level security;
+alter table app_settings enable row level security;
+
+drop policy if exists "own settings" on app_settings;
+create policy "own settings" on app_settings for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists "own plants" on plants;
 create policy "own plants" on plants for all

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import CareBadge from './CareBadge.jsx'
+import PlantTypeIcon from './PlantTypeIcon.jsx'
 import { careStatus, relativeDays, nextDue } from '../lib/care.js'
 
 export default function PlantCard({ plant }) {
@@ -31,6 +32,8 @@ export function Thumb({ plant, size = 'h-16 w-16' }) {
   return plant.photoUrl ? (
     <img src={plant.photoUrl} alt={plant.name} className={`${size} shrink-0 rounded-xl object-cover`} loading="lazy" />
   ) : (
-    <div className={`${size} grid shrink-0 place-items-center rounded-xl bg-soil-800 text-2xl`}>🪴</div>
+    <div className={`${size} grid shrink-0 place-items-center rounded-xl bg-soil-800`}>
+      <PlantTypeIcon type={plant.type} className="h-3/5 w-3/5 text-canopy-400" />
+    </div>
   )
 }

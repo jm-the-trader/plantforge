@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { db, MODE } from '../lib/db.js'
 import { needsWater, wateringSoon, careStatus } from '../lib/care.js'
+import { DEFAULT_COLLECTION_NAME } from '../lib/settings.js'
 import PlantCard from '../components/PlantCard.jsx'
 
 export default function Dashboard() {
   const [plants, setPlants] = useState(null)
   const [error, setError] = useState('')
+  const [collectionName, setCollectionName] = useState(DEFAULT_COLLECTION_NAME)
 
   useEffect(() => {
     db.listPlants().then(setPlants).catch((e) => setError(e.message || 'Failed to load'))
+    db.getSettings().then((s) => s.collectionName && setCollectionName(s.collectionName)).catch(() => {})
   }, [])
 
   const stats = useMemo(() => {
@@ -33,7 +36,7 @@ export default function Dashboard() {
     <div className="animate-rise space-y-5 py-4">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">My Plants</h1>
+          <h1 className="text-2xl font-bold text-white">{collectionName}</h1>
           <p className="text-sm text-soil-50/55">
             {stats.total === 0 ? 'Let’s add your first plant' : `${stats.total} plant${stats.total === 1 ? '' : 's'} in your collection`}
           </p>

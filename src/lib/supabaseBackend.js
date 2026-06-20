@@ -147,6 +147,32 @@ export const supabaseBackend = {
     return { id: data.id, plantId: data.plant_id, type: data.type, eventDate: data.event_date, note: data.note, createdAt: data.created_at }
   },
 
+  // User preferences (collection name, …), one row per user in app_settings.
+  // Reads are resilient: if the table doesn't exist yet (migration not run),
+  // fall back to defaults rather than breaking the page.
+  async getSettings() {
+    try {
+      const { data, error } = await supabase.from('app_settings').select('collection_name').maybeSingle()
+      if (error) throw error
+      return { collectionName: data?.collection_name || null }
+    } catch {
+      return { collectionName: null }
+    }
+  },
+
+  async updateSettings(patch) {
+    const userId = await currentUserId()
+    const row = { user_id: userId, updated_at: new Date().toISOString() }
+    if ('collectionName' in patch) row.collection_name = patch.collectionName || null
+    const { data, error } = await supabase
+      .from('app_settings')
+      .upsert(row, { onConflict: 'user_id' })
+      .select('collection_name')
+      .single()
+    if (error) throw error
+    return { collectionName: data?.collection_name || null }
+  },
+
   // Undo a logged care entry, then re-derive the matching last_* date from the
   // most recent remaining event of that type (or clear it if none are left).
   async deleteCareEvent(event) {

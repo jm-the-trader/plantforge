@@ -1,10 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { db, MODE } from '../lib/db.js'
 import { useAuth } from '../auth/AuthProvider.jsx'
 
 export default function Settings() {
   const { user, needsAuth, signOut } = useAuth()
   const [busy, setBusy] = useState(false)
+  const [name, setName] = useState('')
+  const [nameStatus, setNameStatus] = useState('') // '' | 'saving' | 'saved' | 'error'
+
+  useEffect(() => {
+    db.getSettings().then((s) => setName(s.collectionName || '')).catch(() => {})
+  }, [])
+
+  async function saveName() {
+    setNameStatus('saving')
+    try {
+      const s = await db.updateSettings({ collectionName: name.trim() })
+      setName(s.collectionName || '')
+      setNameStatus('saved')
+      setTimeout(() => setNameStatus(''), 1500)
+    } catch {
+      setNameStatus('error')
+    }
+  }
 
   async function exportBackup() {
     setBusy(true)
@@ -30,6 +48,28 @@ export default function Settings() {
   return (
     <div className="animate-rise space-y-5 py-4">
       <h1 className="text-2xl font-bold text-white">Settings</h1>
+
+      <section className="card space-y-2 p-4">
+        <label className="label" htmlFor="collection-name">Collection name</label>
+        <p className="text-sm text-soil-50/55">The title shown on your home screen (default “My Plants”).</p>
+        <div className="flex gap-2">
+          <input
+            id="collection-name"
+            className="field"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="My Plants"
+            maxLength={40}
+            autoCapitalize="words"
+          />
+          <button onClick={saveName} disabled={nameStatus === 'saving'} className="btn-primary shrink-0 px-4">
+            {nameStatus === 'saving' ? 'Saving…' : nameStatus === 'saved' ? 'Saved ✓' : 'Save'}
+          </button>
+        </div>
+        {nameStatus === 'error' && (
+          <p className="text-sm text-rose-300">Couldn’t save — make sure the settings table is set up.</p>
+        )}
+      </section>
 
       <section className="card divide-y divide-white/5">
         <Row label="Storage">

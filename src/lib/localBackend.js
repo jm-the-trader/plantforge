@@ -6,6 +6,7 @@ import { today } from './care.js'
 
 const PLANTS_KEY = 'plantforge.plants.v1'
 const EVENTS_KEY = 'plantforge.events.v1'
+const SETTINGS_KEY = 'plantforge.settings.v1'
 
 function read(key) {
   try {
@@ -88,6 +89,22 @@ export const localBackend = {
     events.push(ev)
     write(EVENTS_KEY, events)
     return ev
+  },
+
+  // User preferences (collection name, …). Normalized camelCase, same shape as
+  // the cloud backend.
+  async getSettings() {
+    const s = read(SETTINGS_KEY)
+    const obj = Array.isArray(s) ? {} : s
+    return { collectionName: obj.collectionName || null }
+  },
+
+  async updateSettings(patch) {
+    const cur = read(SETTINGS_KEY)
+    const next = { ...(Array.isArray(cur) ? {} : cur), ...patch }
+    if (!next.collectionName) delete next.collectionName
+    write(SETTINGS_KEY, next)
+    return { collectionName: next.collectionName || null }
   },
 
   // Undo a logged care entry, then re-derive the matching last_* date from the
