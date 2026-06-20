@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { db, MODE } from '../lib/db.js'
-import { needsWater, wateringSoon, careStatus } from '../lib/care.js'
+import { needsWater, wateringSoon, careStatus, photoReminderDue } from '../lib/care.js'
 import { DEFAULT_COLLECTION_NAME } from '../lib/settings.js'
 import PlantCard from '../components/PlantCard.jsx'
 
@@ -23,10 +23,11 @@ export default function Dashboard() {
       const s = careStatus(p.lastRepotted, p.repotIntervalDays)
       return s === 'due' || s === 'overdue'
     })
+    const photoDue = plants.filter((p) => photoReminderDue(p.lastPhotoOn))
     const recent = [...plants]
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
       .slice(0, 3)
-    return { total: plants.length, water, soon, repotSoon, recent }
+    return { total: plants.length, water, soon, repotSoon, photoDue, recent }
   }, [plants])
 
   if (error) return <Notice>⚠️ {error}</Notice>
@@ -73,6 +74,14 @@ export default function Dashboard() {
             <section className="space-y-2">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-soil-50/45">Repotting due</h2>
               <div className="space-y-2">{stats.repotSoon.map((p) => <PlantCard key={p.id} plant={p} />)}</div>
+            </section>
+          )}
+
+          {stats.photoDue.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-soil-50/45">📸 Photo check-in</h2>
+              <p className="text-xs text-soil-50/45">No new photo in 6 months — snap an updated one.</p>
+              <div className="space-y-2">{stats.photoDue.map((p) => <PlantCard key={p.id} plant={p} />)}</div>
             </section>
           )}
 

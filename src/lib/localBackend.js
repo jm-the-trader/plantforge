@@ -7,6 +7,7 @@ import { today } from './care.js'
 const PLANTS_KEY = 'plantforge.plants.v1'
 const EVENTS_KEY = 'plantforge.events.v1'
 const SETTINGS_KEY = 'plantforge.settings.v1'
+const PHOTOS_KEY = 'plantforge.photos.v1'
 
 function read(key) {
   try {
@@ -48,28 +49,30 @@ export const localBackend = {
       createdAt: now,
       updatedAt: now,
       photoUrl: null,
+      lastPhotoOn: null,
       ...stripPhotoFile(data),
     }
-    if (data.photoFile) plant.photoUrl = await fileToDataUrl(data.photoFile)
     plants.push(plant)
     write(PLANTS_KEY, plants)
-    return plant
+    if (data.photoFile) await this.addPhoto(plant.id, data.photoFile)
+    return this.getPlant(plant.id)
   },
 
   async updatePlant(id, data) {
     const plants = read(PLANTS_KEY)
     const i = plants.findIndex((p) => p.id === id)
     if (i === -1) return null
-    const next = { ...plants[i], ...stripPhotoFile(data), updatedAt: new Date().toISOString() }
-    if (data.photoFile) next.photoUrl = await fileToDataUrl(data.photoFile)
-    plants[i] = next
+    plants[i] = { ...plants[i], ...stripPhotoFile(data), updatedAt: new Date().toISOString() }
     write(PLANTS_KEY, plants)
-    return next
+    if (data.photoFile) await this.addPhoto(id, data.photoFile)
+    else if (data.photoFile === null) await this.removeCover(id)
+    return this.getPlant(id)
   },
 
   async deletePlant(id) {
     write(PLANTS_KEY, read(PLANTS_KEY).filter((p) => p.id !== id))
     write(EVENTS_KEY, read(EVENTS_KEY).filter((e) => e.plantId !== id))
+    write(PHOTOS_KEY, read(PHOTOS_KEY).filter((ph) => ph.plantId !== id))
   },
 
   async listEvents(plantId) {
@@ -89,6 +92,33 @@ export const localBackend = {
     events.push(ev)
     write(EVENTS_KEY, events)
     return ev
+  },
+
+  // ── Photo history (photos stored inline as data URLs) ───────────────────────
+  async listPhotos(plantId) {
+    return read(PHOTOS_KEY)
+      .filter((ph) => ph.plantId === plantId)
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+      .map((ph) => ({ id: ph.id, url: ph.dataUrl, createdAt: ph.createdAt }))
+  },
+
+  async addPhoto(plantId, file) {
+    const photos = read(PHOTOS_KEY)
+    photos.push({ id: uid(), plantId, dataUrl: await fileToDataUrl(file), createdAt: new Date().toISOString() })
+    write(PHOTOS_KEY, photos)
+    refreshCover(plantId)
+  },
+
+  async removePhoto(plantId, photoId) {
+    write(PHOTOS_KEY, read(PHOTOS_KEY).filter((ph) => ph.id !== photoId))
+    refreshCover(plantId)
+  },
+
+  // Remove the current cover (most recent photo); cover reverts to the previous.
+  async removeCover(plantId) {
+    const latest = mostRecentPhoto(plantId)
+    if (latest) return this.removePhoto(plantId, latest.id)
+    refreshCover(plantId) // no history → clears cover
   },
 
   // User preferences (collection name, …). Normalized camelCase, same shape as
@@ -129,4 +159,25 @@ export const localBackend = {
 function stripPhotoFile(data) {
   const { photoFile, ...rest } = data
   return rest
+}
+
+function mostRecentPhoto(plantId) {
+  return read(PHOTOS_KEY)
+    .filter((ph) => ph.plantId === plantId)
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))
+    .pop()
+}
+
+// Mirror the plant's cover (photoUrl) + last_photo date onto its newest photo.
+function refreshCover(plantId) {
+  const latest = mostRecentPhoto(plantId)
+  const plants = read(PLANTS_KEY)
+  const i = plants.findIndex((p) => p.id === plantId)
+  if (i === -1) return
+  plants[i] = {
+    ...plants[i],
+    photoUrl: latest?.dataUrl || null,
+    lastPhotoOn: latest?.createdAt ? latest.createdAt.slice(0, 10) : null,
+  }
+  write(PLANTS_KEY, plants)
 }

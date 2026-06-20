@@ -16,9 +16,22 @@ create table if not exists plants (
   last_repotted date,   repot_interval_days int,
   last_fertilized date, fertilize_interval_days int,
   notes text,
+  last_photo_on date,                  -- date of the most recent photo (for the re-photo reminder)
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Photo history: many photos per plant, each timestamped. The plant's
+-- photo_path mirrors the most recent one (the cover shown on cards).
+create table if not exists plant_photos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  plant_id uuid not null references plants(id) on delete cascade,
+  photo_path text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists plant_photos_plant_idx on plant_photos(plant_id);
 
 create table if not exists care_events (
   id uuid primary key default gen_random_uuid(),
@@ -44,9 +57,14 @@ create table if not exists app_settings (
 alter table plants enable row level security;
 alter table care_events enable row level security;
 alter table app_settings enable row level security;
+alter table plant_photos enable row level security;
 
 drop policy if exists "own settings" on app_settings;
 create policy "own settings" on app_settings for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "own plant_photos" on plant_photos;
+create policy "own plant_photos" on plant_photos for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists "own plants" on plants;
@@ -63,8 +81,8 @@ insert into storage.buckets (id, name, public)
 values ('plant-photos', 'plant-photos', false)
 on conflict (id) do nothing;
 
--- Objects are stored under "<user_id>/<plant_id>.<ext>"; allow each user to
--- manage only objects whose first path segment is their own user id.
+-- Objects are stored under "<user_id>/<plant_id>/<photo_id>.<ext>"; allow each
+-- user to manage only objects whose first path segment is their own user id.
 drop policy if exists "own plant photos" on storage.objects;
 create policy "own plant photos" on storage.objects for all
   to authenticated

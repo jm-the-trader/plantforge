@@ -88,6 +88,25 @@ export function formatDate(dateStr) {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
+// Friendly "X months ago" for photo dates (falls back to days for recent ones).
+export function monthsAgoLabel(dateStr) {
+  const days = daysAgo(dateStr)
+  if (days === null) return ''
+  if (days < 31) return relativeDays(dateStr)
+  const months = Math.round(days / 30.44)
+  return `${months} month${months === 1 ? '' : 's'} ago`
+}
+
+// Photo check-in: due when the plant HAS a photo whose latest is 6+ months old.
+// Plants with no photo (default icon) are never due — we leave those alone.
+const PHOTO_REMINDER_MONTHS = 6
+export function photoReminderDue(lastPhotoOn) {
+  const due = startOfDay(lastPhotoOn)
+  if (!due) return false
+  due.setMonth(due.getMonth() + PHOTO_REMINDER_MONTHS)
+  return startOfDay(today()) >= due
+}
+
 // Does this plant need watering now (due or overdue)?
 export function needsWater(plant) {
   const s = careStatus(plant.lastWatered, plant.waterIntervalDays)

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db.js'
-import { careStatus, relativeDays, nextDue, formatDate, daysAgo } from '../lib/care.js'
+import { careStatus, relativeDays, nextDue, formatDate, daysAgo, monthsAgoLabel, photoReminderDue } from '../lib/care.js'
 import { LIGHT_LABEL } from '../data/plantTypes.js'
 import CareBadge from '../components/CareBadge.jsx'
 import { Thumb } from '../components/PlantCard.jsx'
@@ -19,14 +19,17 @@ export default function PlantDetail() {
   const navigate = useNavigate()
   const [plant, setPlant] = useState(null)
   const [events, setEvents] = useState([])
+  const [photos, setPhotos] = useState([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
+  const fileRef = useRef(null)
 
   const load = useCallback(async () => {
     try {
-      const [p, ev] = await Promise.all([db.getPlant(id), db.listEvents(id)])
+      const [p, ev, ph] = await Promise.all([db.getPlant(id), db.listEvents(id), db.listPhotos(id)])
       setPlant(p)
       setEvents(ev)
+      setPhotos(ph)
     } catch (e) {
       setError(e.message || 'Failed to load')
     }
@@ -59,6 +62,34 @@ export default function PlantDetail() {
       await load()
     } catch (e) {
       setError(e.message || 'Could not remove entry')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function onPickPhoto(e) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-picking the same file later
+    if (!file) return
+    setBusy('addphoto')
+    try {
+      await db.addPhoto(id, file)
+      await load()
+    } catch (err) {
+      setError(err.message || 'Could not add photo')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function removePhoto(photo) {
+    if (!confirm(`Remove this photo from ${formatDate(photo.createdAt)}?`)) return
+    setBusy('photo:' + photo.id)
+    try {
+      await db.removePhoto(id, photo.id)
+      await load()
+    } catch (err) {
+      setError(err.message || 'Could not remove photo')
     } finally {
       setBusy('')
     }
@@ -114,6 +145,62 @@ export default function PlantDetail() {
       <section className="card divide-y divide-white/5">
         <Fact label="Acquired / purchased" value={plant.acquiredOn ? `${formatDate(plant.acquiredOn)} (${relativeDays(plant.acquiredOn)})` : '—'} />
         {plant.notes && <Fact label="Notes" value={plant.notes} />}
+      </section>
+
+      {/* Photos */}
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soil-50/45">Photos</h2>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={busy === 'addphoto'}
+            className="text-sm font-medium text-canopy-400 disabled:opacity-50"
+          >
+            {busy === 'addphoto' ? 'Uploading…' : '+ Add photo'}
+          </button>
+        </div>
+
+        {photoReminderDue(plant.lastPhotoOn) && (
+          <div className="card flex items-center gap-3 border border-amber-500/30 bg-amber-500/10 p-3">
+            <span className="text-xl">📸</span>
+            <p className="flex-1 text-sm text-amber-200/90">
+              Time for a new photo — the last one was {monthsAgoLabel(plant.lastPhotoOn)}.
+            </p>
+            <button onClick={() => fileRef.current?.click()} disabled={busy === 'addphoto'} className="btn-primary px-3 py-1.5 text-sm">
+              Add
+            </button>
+          </div>
+        )}
+
+        {photos.length === 0 ? (
+          <p className="text-sm text-soil-50/45">No photos yet — add one to start a photo history.</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {photos.map((ph) => (
+              <figure key={ph.id} className="relative overflow-hidden rounded-xl bg-soil-800">
+                <img
+                  src={ph.url}
+                  alt={`${plant.name} on ${formatDate(ph.createdAt)}`}
+                  className="aspect-square w-full object-cover"
+                  loading="lazy"
+                />
+                <figcaption className="absolute inset-x-0 bottom-0 bg-soil-900/75 px-1.5 py-1 text-center text-[11px] text-soil-50/85">
+                  {formatDate(ph.createdAt)}
+                </figcaption>
+                <button
+                  onClick={() => removePhoto(ph)}
+                  disabled={busy === 'photo:' + ph.id}
+                  aria-label="Remove photo"
+                  className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-soil-900/80 text-soil-50/80 hover:bg-rose-500/80 hover:text-white disabled:opacity-50"
+                >
+                  {busy === 'photo:' + ph.id ? '…' : '✕'}
+                </button>
+              </figure>
+            ))}
+          </div>
+        )}
+
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
       </section>
 
       {/* History */}
